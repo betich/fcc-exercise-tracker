@@ -54,14 +54,20 @@ app.post('/api/exercise/new-user', async (req, res) => {
 
 app.post('/api/exercise/add', (req, res) => {
 	// create a new exercise
-	let date = new Date(req.body.date);
-	if (!date) return res.send("invalid date");
-	else if (date > new Date()) return res.send("that date hasn't even happened yet")
+	let date = new Date();
+	if (req.body.date) date = new Date(req.body.date);
+	else if (date > new Date()) return res.send("that date hasn't even happened yet");
+
+	if (!(req.body.duration && req.body.userId && req.body.description)) {
+		return res.send("enter every required fields");
+	}
+
+	let duration = parseInt(req.body.duration);
 
 	Exercise.create({
 		user: req.body.userId,
 		date: date,
-		duration: req.body.duration,
+		duration: duration,
 		description: req.body.description
 	})
 	.then((exp) => {
@@ -76,10 +82,13 @@ app.post('/api/exercise/add', (req, res) => {
 	.catch((err) => sendErr(res, err))
 })
 
-app.get('/api/exercise/log', (req, res) => {
+app.get('/api/exercise/log', async (req, res) => {
 	// queries: {userId}[&from][&to][&limit]
 	const userId = mongoose.Types.ObjectId(req.query.userId);
 	if (!userId) return res.send("specify a user id");
+	
+	let foundUser = await User.findById(userId);
+	if (!foundUser) return res.send("can't find the user");
 
 	let from = new Date(-8640000000000000);
 	let to = new Date();
@@ -88,8 +97,9 @@ app.get('/api/exercise/log', (req, res) => {
 	if (req.query.from) {
 		from = new Date(req.query.from);
 	}
+
 	if (req.query.to) {
-		from = new Date(req.query.to)
+		to = new Date(req.query.to)
 	}
 
 	let pipeline = [
@@ -113,7 +123,6 @@ app.get('/api/exercise/log', (req, res) => {
 	Exercise.aggregate(pipeline)
 		.then(async (exercises) => {
 			if (!exercises) return res.send("can't find any exercises")
-			let foundUser = await User.findById(userId);
 			res.json({
 				_id: foundUser._id,
 				username: foundUser.username,
