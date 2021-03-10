@@ -52,7 +52,7 @@ app.post('/api/exercise/new-user', async (req, res) => {
 		.catch((err) => sendErr(res, err))
 })
 
-app.post('/api/exercise/add', (req, res) => {
+app.post('/api/exercise/add', async (req, res) => {
 	// create a new exercise
 	let date = new Date();
 	if (req.body.date) date = new Date(req.body.date);
@@ -61,6 +61,9 @@ app.post('/api/exercise/add', (req, res) => {
 	if (!(req.body.duration && req.body.userId && req.body.description)) {
 		return res.send("enter every required fields");
 	}
+
+	let foundUser = await User.findById(req.body.userId);
+	if (!foundUser) return res.send("can't find the user");
 
 	let duration = parseInt(req.body.duration);
 
@@ -73,13 +76,26 @@ app.post('/api/exercise/add', (req, res) => {
 	.then((exp) => {
 		res.json({
 			_id: exp._id,
-			user: exp.userId,
+			username: foundUser.username,
 			date: exp.date.toUTCString(),
 			duration: exp.duration,
 			description: exp.description
 		});
 	})
 	.catch((err) => sendErr(res, err))
+})
+
+app.get('/api/exercise/users', (req, res) => {
+	User.find({})
+		.then((foundUsers) => {
+			let response = [];
+			foundUsers.forEach((user) => {
+				response.push({ _id: user._id, username: user.username })
+			})
+
+			res.json(response);
+		})
+		.catch((err) => sendErr(res, err))
 })
 
 app.get('/api/exercise/log', async (req, res) => {
