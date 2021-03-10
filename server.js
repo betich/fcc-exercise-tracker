@@ -75,7 +75,7 @@ app.post('/api/exercise/add', async (req, res) => {
 	})
 	.then((exp) => {
 		res.json({
-			_id: exp._id,
+			_id: foundUser._id,
 			username: foundUser.username,
 			date: exp.date.toDateString(),
 			duration: exp.duration,
